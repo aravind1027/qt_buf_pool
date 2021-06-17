@@ -11,7 +11,7 @@ TEST(sanity_checks, initialization)
 TEST(allocation, simple)
 {
     void *buf;
-
+    
     // reset buffer pool
     ASSERT_EQ(0, reset());
     ASSERT_EQ(0, init(10));
@@ -34,7 +34,34 @@ TEST(allocation, simple)
 
     // print buffer stats
     print_buf_stats();
+}
 
+TEST(deallocation, simple)
+{
+    void *buf1;
+    void *buf2;
+    
+    // reset buffer pool
+    ASSERT_EQ(0, reset());
+    ASSERT_EQ(0, init(10));
+
+    // allocate memory
+    buf1 = alloc(5);
+    buf2 = alloc(5);
+
+    // print buffer stats
+    print_buf_stats();
+
+    // test deallocation of valid buffers
+    ASSERT_EQ(0, dealloc(buf1));
+    ASSERT_EQ(0, dealloc(buf2));
+
+    // test deallocation of invalid buffers
+    ASSERT_EQ(-1, dealloc(buf1));
+    ASSERT_EQ(-1, dealloc(buf2));
+
+    // print buffer stats
+    print_buf_stats();
 }
 
 int main(int argc, char **argv)
