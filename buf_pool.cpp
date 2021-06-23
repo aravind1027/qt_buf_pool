@@ -3,12 +3,10 @@
 #include <algorithm>
 #include <list>
 #include <vector>
-#include <unordered_set>
 #include <unordered_map>
 #include <stdint.h>
 
 using std::vector;
-using std::unordered_set;
 using std::list;
 using std::unordered_map;
 
@@ -18,8 +16,15 @@ static bool init_called = false;
 static uint32_t _max_mem_size;
 static uint32_t mem_used;
 static vector<int> buf_sizes({ 1, 2, 5, 10 });
-static unordered_set<void *> allocated_bufs;
-static unordered_map<int, list<void *>> size_to_buf_map;
+
+struct BufInfo
+{
+    uint32_t size;
+    bool in_use;
+};
+
+static unordered_map<void *, BufInfo> all_bufs;
+static unordered_map<int, list<void *>> bufs_in_use;
 static unordered_map<int, list<void *>> back_pocket;
 
 int init(uint32_t max_mem_size)
@@ -28,6 +33,12 @@ int init(uint32_t max_mem_size)
     {
         _max_mem_size = max_mem_size;
         init_called = true;
+
+        for (int size : buf_sizes)
+        {
+            bufs_in_use[size] = list<void *>();
+            back_pocket[size] = list<void *>();
+        }
 
         return 0;
     } 
@@ -48,35 +59,29 @@ void *alloc(uint32_t buf_size)
     {
         void *buf;
 
-        if (back_pocket.count(buf_size) == 0)
+        if (back_pocket[buf_size].empty())
         {
             buf = operator new(buf_size * MEGA, std::nothrow);
-
-            if (size_to_buf_map.count(buf_size) == 0)
-            {
-                size_to_buf_map.insert( {{buf_size, list<void *>( {buf} )}} );
-            }
-            else
-            {
-                size_to_buf_map[buf_size].push_front(buf);
-            }
-        }
-        else if (back_pocket[buf_size].empty())
-        {
-            buf = operator new(buf_size * MEGA, std::nothrow);
-            size_to_buf_map[buf_size].push_front(buf);
         }
         else
         {
             buf = back_pocket[buf_size].front();
             back_pocket[buf_size].pop_front();
-            size_to_buf_map[buf_size].push_front(buf);
         }
 
-        if (buf != nullptr)
+        if (buf)
         {
             mem_used += buf_size;
-            allocated_bufs.insert(buf);
+            bufs_in_use[buf_size].push_front(buf);
+
+            if (all_bufs.count(buf) == 1)
+            {
+                all_bufs[buf].in_use = true;
+            }
+            else
+            {
+                all_bufs[buf] = BufInfo { buf_size, true };
+            }
         }
 
         return buf;
@@ -89,24 +94,15 @@ void *alloc(uint32_t buf_size)
 
 int dealloc(void *buf)
 {
-    if (init_called && allocated_bufs.count(buf) != 0) {
-        allocated_bufs.erase(buf);
-        int size = 0;
+    if (init_called && all_bufs.count(buf) == 1 && all_bufs[buf].in_use)
+    {
+        int size = all_bufs[buf].size;
 
-        for (auto pair : size_to_buf_map)
-        {
-            if (std::find(pair.second.begin(), pair.second.end(), buf) != 
-                pair.second.end())
-            {
-                back_pocket[pair.first].push_front(buf);
-                size = pair.first;
-                break;
-            }        
-        }
+        bufs_in_use[size].remove(buf);
+        back_pocket[size].push_front(buf);
+        all_bufs[buf].in_use = false;
+        mem_used -= size;
 
-        if (size != 0)
-            size_to_buf_map[size].remove(buf);
-        
         return 0;
     }
     else
@@ -121,8 +117,14 @@ int reset()
     {
         init_called = false;
         _max_mem_size = 0;
-        size_to_buf_map.erase(size_to_buf_map.begin(), size_to_buf_map.end());
-        back_pocket.erase(back_pocket.begin(), back_pocket.end());
+        mem_used = 0;
+        all_bufs.clear();
+
+        for (int size : buf_sizes)
+        {
+            bufs_in_use[size].clear();
+            bufs_in_use[size].clear();
+        }
 
         return 0;
     } 
@@ -134,7 +136,7 @@ int reset()
 
 void print_buf_stats()
 {
-    for (auto pair : size_to_buf_map)
+    for (auto pair : bufs_in_use)
         printf("Buffer Size: %d Amount Allocated: %ld\n", pair.first, pair.second.size());
 }
 

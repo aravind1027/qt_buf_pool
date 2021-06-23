@@ -40,6 +40,9 @@ TEST(deallocation, simple)
 {
     void *buf1;
     void *buf2;
+    void *buf3;
+    void *buf4;
+    void *buf5;
     
     // reset buffer pool
     ASSERT_EQ(0, reset());
@@ -47,19 +50,32 @@ TEST(deallocation, simple)
 
     // allocate memory
     buf1 = alloc(5);
-    buf2 = alloc(5);
+    buf2 = alloc(2);
+    buf3 = alloc(2);
+    buf4 = alloc(1);
 
     // print buffer stats
     print_buf_stats();
+    std::cout << std::endl;
 
     // test deallocation of valid buffers
-    ASSERT_EQ(0, dealloc(buf1));
     ASSERT_EQ(0, dealloc(buf2));
+    ASSERT_EQ(0, dealloc(buf3));
+    ASSERT_EQ(0, dealloc(buf4));
+
+    // print buffer stats
+    print_buf_stats();
+    std::cout << std::endl;
 
     // test deallocation of invalid buffers
-    ASSERT_EQ(-1, dealloc(buf1));
     ASSERT_EQ(-1, dealloc(buf2));
+    ASSERT_EQ(-1, dealloc(buf3));
+    ASSERT_EQ(-1, dealloc(buf4));
 
+    // test allocation of another buffer
+    buf5 = alloc(2);
+    ASSERT_NE(nullptr, buf5);
+    
     // print buffer stats
     print_buf_stats();
 }
