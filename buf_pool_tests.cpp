@@ -34,6 +34,8 @@ TEST(allocation, simple)
 
     // print buffer stats
     print_buf_stats();
+    print_buf_details();
+
 }
 
 TEST(deallocation, simple)
@@ -56,7 +58,7 @@ TEST(deallocation, simple)
 
     // print buffer stats
     print_buf_stats();
-    std::cout << std::endl;
+    print_buf_details();
 
     // test deallocation of valid buffers
     ASSERT_EQ(0, dealloc(buf2));
@@ -65,7 +67,7 @@ TEST(deallocation, simple)
 
     // print buffer stats
     print_buf_stats();
-    std::cout << std::endl;
+    print_buf_details();
 
     // test deallocation of invalid buffers
     ASSERT_EQ(-1, dealloc(buf2));
@@ -78,6 +80,7 @@ TEST(deallocation, simple)
     
     // print buffer stats
     print_buf_stats();
+    print_buf_details();
 }
 
 int main(int argc, char **argv)

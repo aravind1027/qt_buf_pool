@@ -123,7 +123,7 @@ int reset()
         for (int size : buf_sizes)
         {
             bufs_in_use[size].clear();
-            bufs_in_use[size].clear();
+            back_pocket[size].clear();
         }
 
         return 0;
@@ -138,10 +138,24 @@ void print_buf_stats()
 {
     for (auto pair : bufs_in_use)
         printf("Buffer Size: %d Amount Allocated: %ld\n", pair.first, pair.second.size());
+
+    printf("\n");
 }
 
 void print_buf_details()
 {
+    int num_in_use = 0;
+    int num_witheld = 0;
 
+    for (auto pair : bufs_in_use)
+        num_in_use += pair.second.size();
+
+    for (auto pair : back_pocket)
+        num_witheld += pair.second.size();
+
+    printf("Total amount of buffers: %ld\n", all_bufs.size());
+    printf("Amount of buffers in use: %d\n", num_in_use);
+    printf("Amount of buffers witheld: %d\n", num_witheld);
+    printf("\n");
 }
 
